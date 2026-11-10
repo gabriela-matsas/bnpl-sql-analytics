@@ -57,7 +57,7 @@ They check that:
 - the data generation is deterministic (two runs produce exactly the same data)
 - every query in `queries.sql` runs, the data quality queries return zero rows, and key results (such as the late payment rate) match an independent calculation in Python
 
-I also checked that the tests really catch problems by breaking the code on purpose (for example, removing a database rule) and confirming that a test fails.
+The tests were also checked by breaking the code on purpose (for example, removing a database rule) and confirming that a test fails.
 
 ## Queries (`queries.sql`)
 
@@ -94,6 +94,16 @@ With the default seed:
 - **SQLite** was chosen so anyone can run the project with no installation. The queries use standard SQL, with a few SQLite functions (`strftime`, `julianday`) for dates.
 - Amounts are stored as `REAL` for simplicity. In a real payments system, money should be stored as integer cents or `DECIMAL` to avoid rounding errors.
 - The customer "risk profile" used to generate late payments is **not** stored in the database, so the queries have to discover the pattern from the data.
+
+## How this project was built
+
+This is a **learning project**. I built it with the help of an AI assistant, and I use it to study and practice SQL.
+
+- **What the AI assistant helped with:** designing the schema, writing the data generator, the first version of the queries, and the automated tests.
+- **What the project is for:** practicing the SQL concepts listed above (joins, aggregation, CTEs, window functions, data quality checks) on a realistic "buy now, pay later" scenario, and reading and explaining each query.
+- **Data:** everything is fictional (see the note at the top).
+
+I am open about using AI because I think it is a valuable tool for learning and for productivity, as long as I review, test and understand what it produces.
 
 ## Files
 
