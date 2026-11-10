@@ -59,6 +59,12 @@ def main() -> None:
 
     wanted = {arg.upper() for arg in sys.argv[1:]}
     queries = load_queries(QUERIES_PATH.read_text(encoding="utf-8"))
+
+    unknown = wanted - {query["id"] for query in queries}
+    if unknown:
+        valid = ", ".join(query["id"] for query in queries)
+        sys.exit(f"Unknown query id(s): {', '.join(sorted(unknown))}. Valid ids: {valid}")
+
     conn = sqlite3.connect(DB_PATH)
 
     for query in queries:

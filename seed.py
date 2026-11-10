@@ -10,6 +10,7 @@ Usage:
 """
 import random
 import sqlite3
+import sys
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -104,18 +105,17 @@ def build_installments(order_id, order_date, total, late_probability, installmen
     return rows
 
 
-def main() -> None:
-    random.seed(SEED)
+def insert_data(conn: sqlite3.Connection) -> None:
+    """Generates all the rows and inserts them.
 
-    if DB_PATH.exists():
-        DB_PATH.unlink()
-    conn = sqlite3.connect(DB_PATH)
-    conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
-
+    Columns are named in every INSERT, so the column order in schema.sql does not matter.
+    """
     # --- merchants ---
     merchant_rows = [(i, name, category) for i, (name, category, _) in enumerate(MERCHANTS, start=1)]
     merchant_weights = [weight for _, _, weight in MERCHANTS]
-    conn.executemany("INSERT INTO merchants VALUES (?, ?, ?)", merchant_rows)
+    conn.executemany(
+        "INSERT INTO merchants (merchant_id, name, category) VALUES (?, ?, ?)", merchant_rows
+    )
 
     # --- customers ---
     customers, late_probability_by_customer = [], {}
@@ -124,7 +124,9 @@ def main() -> None:
         signup = random_date(date(2025, 1, 1), date(2026, 9, 30))
         customers.append((customer_id, name, random.choice(CITIES), signup.isoformat()))
         late_probability_by_customer[customer_id] = pick_risk_profile()
-    conn.executemany("INSERT INTO customers VALUES (?, ?, ?, ?)", customers)
+    conn.executemany(
+        "INSERT INTO customers (customer_id, name, city, signup_date) VALUES (?, ?, ?, ?)", customers
+    )
 
     # --- orders and installments ---
     orders, installments = [], []
@@ -145,16 +147,52 @@ def main() -> None:
             installment_id += len(rows)
             order_id += 1
 
-    conn.executemany("INSERT INTO orders VALUES (?, ?, ?, ?, ?)", orders)
-    conn.executemany("INSERT INTO installments VALUES (?, ?, ?, ?, ?, ?, ?)", installments)
-    conn.commit()
+    conn.executemany(
+        "INSERT INTO orders (order_id, customer_id, merchant_id, order_date, total_amount) "
+        "VALUES (?, ?, ?, ?, ?)",
+        orders,
+    )
+    conn.executemany(
+        "INSERT INTO installments (installment_id, order_id, installment_number, due_date, "
+        "amount, paid_date, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        installments,
+    )
 
-    # --- quick sanity check ---
-    for table in ("customers", "merchants", "orders", "installments"):
-        count = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
-        print(f"{table:<13} {count:>6} rows")
-    print(f"\nDatabase created at: {DB_PATH}")
-    conn.close()
+
+def create_database(db_path: Path = DB_PATH, verbose: bool = True) -> None:
+    """Creates (or replaces) the SQLite database with the schema and the fictional data."""
+    random.seed(SEED)
+    db_path = Path(db_path)
+
+    if db_path.exists():
+        try:
+            db_path.unlink()
+        except PermissionError as error:
+            raise PermissionError(
+                f"Could not replace {db_path}. Close any program that has it open "
+                "(for example DB Browser for SQLite) and try again."
+            ) from error
+
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
+        insert_data(conn)
+        conn.commit()
+
+        if verbose:
+            for table in ("customers", "merchants", "orders", "installments"):
+                count = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+                print(f"{table:<13} {count:>6} rows")
+            print(f"\nDatabase created at: {db_path}")
+    finally:
+        conn.close()
+
+
+def main() -> None:
+    try:
+        create_database()
+    except PermissionError as error:
+        sys.exit(str(error))
 
 
 if __name__ == "__main__":

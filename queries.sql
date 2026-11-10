@@ -193,7 +193,8 @@ ORDER BY MIN(n_orders);
 
 
 -- Q13. Signup cohorts
--- LEFT JOIN keeps customers who signed up but never bought.
+-- LEFT JOIN keeps every customer, even one who signed up but never bought
+-- (in this dataset everyone has at least one order).
 SELECT
     strftime('%Y-%m', c.signup_date)                              AS signup_month,
     COUNT(DISTINCT c.customer_id)                                 AS customers,

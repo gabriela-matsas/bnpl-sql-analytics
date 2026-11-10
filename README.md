@@ -42,6 +42,23 @@ python run_queries.py   # runs all 15 queries and prints the results
 python run_queries.py Q06 Q10   # runs only the queries you list
 ```
 
+## Tests
+
+The project has automated tests (28 tests, Python standard library only):
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+They check that:
+
+- the generated data is complete and consistent (4 installments per order, installments add up to the order total, no payments before the order or in the future, no broken foreign keys)
+- the database rejects bad data (invalid status, negative amounts, duplicate installments, unknown customers)
+- the data generation is deterministic (two runs produce exactly the same data)
+- every query in `queries.sql` runs, the data quality queries return zero rows, and key results (such as the late payment rate) match an independent calculation in Python
+
+I also checked that the tests really catch problems by breaking the code on purpose (for example, removing a database rule) and confirming that a test fails.
+
 ## Queries (`queries.sql`)
 
 | # | Question | SQL concepts |
@@ -85,5 +102,7 @@ With the default seed:
 ├── seed.py           # generates the fictional data
 ├── queries.sql       # the 15 analysis queries (commented)
 ├── run_queries.py    # runs the queries and prints tables
+├── tests/
+│   └── test_project.py   # automated tests
 └── README.md
 ```
